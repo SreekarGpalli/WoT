@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Lift">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <meta name="format-detection" content="telephone=no">
+  
+  <!-- iOS Splash Screens (inline SVG data URI for simplicity) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23000' width='180' height='180' rx='40'/><text x='90' y='115' font-size='80' text-anchor='middle' fill='%2330D158'>🏋️</text></svg>">
+  
+  <!-- Prevent zoom on input focus -->
+  <meta name="format-detection" content="telephone=no">
+  
+  <title>Lift - Workout Tracker</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  
+  <!-- Global Styles -->
+  <style>
+    /* Base resets */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      height: 100%;
+      background: #000;
+    }
+    
+    body {
+      min-height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    
+    /* Prevent pull to refresh */
+    html, body {
+      overscroll-behavior-y: contain;
+    }
+    
+    /* Hide scrollbar but allow scrolling */
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      background: transparent;
+    }
+    
+    /* Selection color */
+    ::selection {
+      background: #30D158;
+      color: #000;
+    }
+    
+    /* Focus outline for accessibility */
+    :focus-visible {
+      outline: 2px solid #0A84FF;
+      outline-offset: 2px;
+    }
+    
+    /* Root element */
+    #root {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- App -->
+  <script type="text/babel" data-type="module">
+// ============================================================================
+// WORKOUT DATA
+// ============================================================================
+const WORKOUT_DATA = {
+  cycle: [
+    {
+      id: "squat",
+      title: "Squat Day",
+      emoji: "🦵",
+      mainLift: { name: "Back Squat", sets: 5, reps: "3-5", rest: "3-5 min" },
+      accessories: [
+        { name: "Leg Press", sets: 4, reps: "8-12" },
+        { name: "Goblet Split Squat", sets: 3, reps: "10 per leg" },
+        { name: "Leg Extension", sets: 3, reps: "15" },
+        { name: "Calf Raises", sets: 3, reps: "15-20" },
+        { name: "Cable Crunch", sets: 3, reps: "12-15" }
+      ],
+      cardio: { activity: "Incline walk", duration_min: 10 }
+    },
+    {
+      id: "benchA",
+      title: "Bench A",
+      subtitle: "Heavy Strength",
+      emoji: "🏋️",
+      mainLift: { name: "Bench Press", sets: 5, reps: "3-5", rest: "3-5 min" },
+      accessories: [
+        { name: "Overhead Press", sets: 3, reps: "4-6" },
+        { name: "Weighted Dips", sets: 3, reps: "6-10" },
+        { name: "Barbell Row", sets: 3, reps: "6-10" },
+        { name: "Triceps Pushdown", sets: 3, reps: "10-15" },
+        { name: "Lateral Raises", sets: 3, reps: "12-20" },
+        { name: "Biceps Curls", sets: 3, reps: "10-12" }
+      ],
+      cardio: { activity: "Rowing", duration_min: 10 }
+    },
+    {
+      id: "deadlift",
+      title: "Deadlift Day",
+      emoji: "💪",
+      mainLift: { name: "Deadlift", sets: 4, reps: "2-4", rest: "3-5 min" },
+      accessories: [
+        { name: "Romanian Deadlift", sets: 3, reps: "6-8" },
+        { name: "Hamstring Curls", sets: 3, reps: "12-15" },
+        { name: "Chest-Supported Row", sets: 3, reps: "8-12" },
+        { name: "Lat Pulldown", sets: 3, reps: "8-12" },
+        { name: "Hip Thrust", sets: 3, reps: "8-12" },
+        { name: "Machine Ab Crunch", sets: 2, reps: "12-15" }
+      ],
+      cardio: { activity: "Stationary bike", duration_min: 10 }
+    },
+    {
+      id: "benchB",
+      title: "Bench B",
+      subtitle: "Hypertrophy",
+      emoji: "💥",
+      mainLift: { name: "Incline or Close-Grip Bench", sets: 4, reps: "6-10", rest: "2-3 min" },
+      accessories: [
+        { name: "Dumbbell Bench", sets: 3, reps: "8-12" },
+        { name: "Seated Dumbbell Shoulder Press", sets: 3, reps: "10" },
+        { name: "Chest Fly", sets: 3, reps: "12-15" },
+        { name: "Triceps Extensions", sets: 3, reps: "12-15" },
+        { name: "Hammer Curls", sets: 3, reps: "10-12" },
+        { name: "Lateral Raises", sets: 2, reps: "20" }
+      ],
+      cardio: { activity: "Elliptical", duration_min: 10 }
+    }
+  ]
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+const getDateString = (date = new Date()) => {
+  return date.toISOString().split('T')[0];
+};
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: "Good morning", icon: "☀️" };
+  if (hour < 17) return { text: "Good afternoon", icon: "🌤️" };
+  if (hour < 21) return { text: "Good evening", icon: "🌅" };
+  return { text: "Late night grind", icon: "🌙" };
+};
+
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+// ============================================================================
+// WEB AUDIO API - Synthetic Beep
+// ============================================================================
+const playBeep = () => {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    const playTone = (freq, startTime, duration) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    const now = audioContext.currentTime;
+    playTone(880, now, 0.15);
+    playTone(880, now + 0.2, 0.15);
+    playTone(1100, now + 0.4, 0.3);
+    
+  } catch (e) {
+    console.log('Audio not available');
+  }
+};
+
+// ============================================================================
+// CUSTOM HOOKS
+// ============================================================================
+const useLocalStorage = (key, initialValue) => {
+  const [storedValue, setStoredValue] = React.useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      return initialValue;
+    }
+  });
+
+  const setValue = (value) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return [storedValue, setValue];
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+// Navigation Header
+const NavHeader = ({ title, onBack, rightAction }) => (
+  <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+    {onBack ? (
+      <button 
+        onClick={onBack}
+        className="flex items-center gap-1 text-[#0A84FF] active:opacity-50 transition-opacity"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+        </svg>
+        <span className="text-[17px]">Back</span>
+      </button>
+    ) : <div className="w-16" />}
+    <h1 className="text-[17px] font-semibold text-white">{title}</h1>
+    {rightAction || <div className="w-16" />}
+  </div>
+);
+
+// Set Circle Component
+const SetCircle = ({ index, isComplete, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`
+      relative w-14 h-14 rounded-full flex items-center justify-center
+      transition-all duration-300 ease-out transform
+      ${isComplete 
+        ? 'bg-[#30D158] scale-95' 
+        : 'bg-[#2C2C2E] active:scale-90 active:bg-[#3C3C3E]'
+      }
+    `}
+  >
+    {isComplete ? (
+      <svg className="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+      </svg>
+    ) : (
+      <span className="text-white/80 text-lg font-semibold">{index + 1}</span>
+    )}
+  </button>
+);
+
+// Rest Timer Component
+const RestTimer = ({ defaultTime = 90 }) => {
+  const [isRunning, setIsRunning] = React.useState(false);
+  const [timeLeft, setTimeLeft] = React.useState(defaultTime);
+  const [selectedTime, setSelectedTime] = React.useState(defaultTime);
+  const intervalRef = React.useRef(null);
+
+  const presets = [60, 90, 120, 180, 300];
+
+  React.useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(t => {
+          if (t <= 1) {
+            setIsRunning(false);
+            playBeep();
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, timeLeft]);
+
+  const startTimer = (time) => {
+    setSelectedTime(time);
+    setTimeLeft(time);
+    setIsRunning(true);
+  };
+
+  const stopTimer = () => {
+    setIsRunning(false);
+    setTimeLeft(selectedTime);
+  };
+
+  const progress = isRunning ? (timeLeft / selectedTime) * 100 : 100;
+
+  return (
+    <div className="bg-[#1C1C1E] rounded-2xl p-4 mt-4">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-white/60 text-sm font-medium uppercase tracking-wider">Rest Timer</span>
+        {isRunning && (
+          <button 
+            onClick={stopTimer}
+            className="text-[#FF453A] text-sm font-medium"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+
+      {isRunning ? (
+        <div className="flex flex-col items-center py-4">
+          <div className="relative w-32 h-32">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle
+                cx="64"
+                cy="64"
+                r="58"
+                fill="none"
+                stroke="#2C2C2E"
+                strokeWidth="8"
+              />
+              <circle
+                cx="64"
+                cy="64"
+                r="58"
+                fill="none"
+                stroke="#FF9500"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={364}
+                strokeDashoffset={364 * (1 - progress / 100)}
+                className="transition-all duration-1000 ease-linear"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-4xl font-bold text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {formatTime(timeLeft)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2 flex-wrap">
+          {presets.map(time => (
+            <button
+              key={time}
+              onClick={() => startTimer(time)}
+              className="flex-1 min-w-[60px] py-3 bg-[#2C2C2E] rounded-xl text-white font-semibold
+                active:scale-95 active:bg-[#3C3C3E] transition-all duration-150"
+            >
+              {time >= 60 ? `${Math.floor(time / 60)}:${(time % 60).toString().padStart(2, '0')}` : `${time}s`}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// GitHub-style Heatmap Calendar
+const HeatmapCalendar = ({ workoutHistory }) => {
+  const [currentMonth, setCurrentMonth] = React.useState(new Date());
+  
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    const days = [];
+    
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ day: null, date: null });
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      days.push({ day, date: dateStr });
+    }
+    
+    return days;
+  };
+
+  const days = getDaysInMonth(currentMonth);
+  const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const today = getDateString();
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  };
+
+  const getWorkoutForDate = (dateStr) => {
+    return workoutHistory.find(w => w.date === dateStr);
+  };
+
+  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  return (
+    <div className="bg-[#1C1C1E] rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-4">
+        <button 
+          onClick={prevMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2C2C2E] active:bg-[#3C3C3E]"
+        >
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-white font-semibold text-lg">{monthName}</span>
+        <button 
+          onClick={nextMonth}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2C2C2E] active:bg-[#3C3C3E]"
+        >
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {weekDays.map((day, i) => (
+          <div key={i} className="text-center text-white/40 text-xs font-medium py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((item, index) => {
+          const workout = item.date ? getWorkoutForDate(item.date) : null;
+          const isToday = item.date === today;
+          
+          return (
+            <div
+              key={index}
+              className={`
+                aspect-square rounded-lg flex items-center justify-center relative
+                transition-all duration-200
+                ${!item.day ? 'bg-transparent' : 
+                  workout ? 'bg-[#30D158]' : 'bg-[#2C2C2E]'
+                }
+                ${isToday ? 'ring-2 ring-[#0A84FF] ring-offset-1 ring-offset-[#1C1C1E]' : ''}
+              `}
+            >
+              {item.day && (
+                <span className={`
+                  text-sm font-medium
+                  ${workout ? 'text-black' : 'text-white/60'}
+                `}>
+                  {item.day}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-[#2C2C2E]" />
+          <span className="text-white/40 text-xs">Rest</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-[#30D158]" />
+          <span className="text-white/40 text-xs">Workout</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// PAGES
+// ============================================================================
+
+// Dashboard Page
+const DashboardPage = ({ onSelectWorkout, onNavigateHistory, workoutHistory, todayWorkout }) => {
+  const greeting = getGreeting();
+  const today = getDateString();
+  const completedToday = workoutHistory.some(w => w.date === today);
+  
+  const calculateStreak = () => {
+    let streak = 0;
+    const sortedHistory = [...workoutHistory].sort((a, b) => 
+      new Date(b.date) - new Date(a.date)
+    );
+    
+    if (sortedHistory.length === 0) return 0;
+    
+    const checkDate = new Date();
+    if (!completedToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    for (const workout of sortedHistory) {
+      const workoutDate = new Date(workout.date);
+      const checkDateStr = getDateString(checkDate);
+      
+      if (workout.date === checkDateStr) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else if (new Date(checkDateStr) > workoutDate) {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const streak = calculateStreak();
+  const totalWorkouts = workoutHistory.length;
+
+  return (
+    <div className="min-h-screen bg-black" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+      <div className="px-6 pt-16 pb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-2xl">{greeting.icon}</span>
+          <p className="text-white/60 text-lg">{greeting.text}</p>
+        </div>
+        <h1 className="text-4xl font-bold text-white">Let's train</h1>
+      </div>
+
+      <div className="px-6 mb-6">
+        <div className="flex gap-3">
+          <div className="flex-1 bg-gradient-to-br from-[#FF9500]/20 to-[#FF9500]/5 rounded-2xl p-4 border border-[#FF9500]/20">
+            <p className="text-[#FF9500] text-sm font-medium mb-1">Current Streak</p>
+            <p className="text-white text-3xl font-bold">{streak} <span className="text-lg font-normal text-white/60">days</span></p>
+          </div>
+          <div className="flex-1 bg-gradient-to-br from-[#30D158]/20 to-[#30D158]/5 rounded-2xl p-4 border border-[#30D158]/20">
+            <p className="text-[#30D158] text-sm font-medium mb-1">Total Workouts</p>
+            <p className="text-white text-3xl font-bold">{totalWorkouts}</p>
+          </div>
+        </div>
+      </div>
+
+      {completedToday && (
+        <div className="px-6 mb-6">
+          <div className="bg-[#30D158]/10 border border-[#30D158]/30 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#30D158] flex items-center justify-center">
+              <svg className="w-6 h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[#30D158] font-semibold">Workout Complete!</p>
+              <p className="text-white/60 text-sm">Great work today 💪</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {todayWorkout && !completedToday && (
+        <div className="px-6 mb-6">
+          <button 
+            onClick={() => onSelectWorkout(todayWorkout)}
+            className="w-full bg-gradient-to-r from-[#0A84FF] to-[#5E5CE6] rounded-2xl p-5 text-left
+              active:scale-[0.98] transition-transform duration-150"
+          >
+            <p className="text-white/80 text-sm font-medium mb-1">Continue Workout</p>
+            <p className="text-white text-xl font-bold">{todayWorkout.title}</p>
+            <p className="text-white/60 text-sm mt-1">Tap to resume →</p>
+          </button>
+        </div>
+      )}
+
+      <div className="px-6 mb-6">
+        <h2 className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-3">
+          {todayWorkout && !completedToday ? 'Or Start Fresh' : 'Select Workout'}
+        </h2>
+        <div className="space-y-3">
+          {WORKOUT_DATA.cycle.map((workout, index) => (
+            <button
+              key={workout.id}
+              onClick={() => onSelectWorkout(workout)}
+              className="w-full bg-[#1C1C1E] rounded-2xl p-4 flex items-center gap-4
+                active:bg-[#2C2C2E] active:scale-[0.98] transition-all duration-150"
+            >
+              <div className="w-14 h-14 rounded-xl bg-[#2C2C2E] flex items-center justify-center text-2xl">
+                {workout.emoji}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-white font-semibold text-lg">{workout.title}</p>
+                {workout.subtitle && (
+                  <p className="text-white/40 text-sm">{workout.subtitle}</p>
+                )}
+                <p className="text-white/60 text-sm">
+                  {workout.mainLift.name} · {workout.accessories.length + 1} exercises
+                </p>
+              </div>
+              <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pb-8">
+        <button
+          onClick={onNavigateHistory}
+          className="w-full bg-[#1C1C1E] rounded-2xl p-4 flex items-center justify-between
+            active:bg-[#2C2C2E] transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#5E5CE6]/20 flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#5E5CE6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <span className="text-white font-medium">View History & Stats</span>
+          </div>
+          <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// History Page
+const HistoryPage = ({ onBack, workoutHistory }) => {
+  const recentWorkouts = [...workoutHistory]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 10);
+
+  return (
+    <div className="min-h-screen bg-black" style={{ animation: 'slideIn 0.3s ease-out' }}>
+      <NavHeader title="History" onBack={onBack} />
+      
+      <div className="px-4 py-6">
+        <HeatmapCalendar workoutHistory={workoutHistory} />
+
+        <div className="mt-6">
+          <h2 className="text-white/60 text-sm font-semibold uppercase tracking-wider mb-3 px-1">
+            Recent Activity
+          </h2>
+          
+          {recentWorkouts.length === 0 ? (
+            <div className="bg-[#1C1C1E] rounded-2xl p-8 text-center">
+              <div className="text-4xl mb-3">🏋️</div>
+              <p className="text-white font-medium mb-1">No workouts yet</p>
+              <p className="text-white/40 text-sm">Complete your first workout to see it here</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentWorkouts.map((workout, index) => {
+                const workoutData = WORKOUT_DATA.cycle.find(w => w.id === workout.workoutId);
+                const date = new Date(workout.date);
+                const formattedDate = date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                });
+
+                return (
+                  <div 
+                    key={workout.date}
+                    className="bg-[#1C1C1E] rounded-xl p-4 flex items-center gap-3"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-[#30D158]/20 flex items-center justify-center">
+                      <span className="text-xl">{workoutData?.emoji || '💪'}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{workoutData?.title || 'Workout'}</p>
+                      <p className="text-white/40 text-sm">{formattedDate}</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-[#30D158] flex items-center justify-center">
+                      <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Workout Session Page
+const WorkoutSessionPage = ({ workout, onBack, onComplete, initialProgress }) => {
+  const allExercises = [
+    { ...workout.mainLift, isMainLift: true },
+    ...workout.accessories.map(e => ({ ...e, isMainLift: false })),
+    { 
+      name: workout.cardio.activity, 
+      duration: `${workout.cardio.duration_min} min`,
+      isCardio: true,
+      sets: 1 
+    }
+  ];
+
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [completedSets, setCompletedSets] = React.useState(
+    initialProgress?.completedSets || 
+    allExercises.reduce((acc, ex, i) => ({ ...acc, [i]: [] }), {})
+  );
+  const [showFinishModal, setShowFinishModal] = React.useState(false);
+
+  const currentExercise = allExercises[currentIndex];
+  const totalExercises = allExercises.length;
+  const progress = ((currentIndex + 1) / totalExercises) * 100;
+
+  const toggleSet = (setIndex) => {
+    setCompletedSets(prev => {
+      const current = prev[currentIndex] || [];
+      const isCompleted = current.includes(setIndex);
+      
+      return {
+        ...prev,
+        [currentIndex]: isCompleted 
+          ? current.filter(i => i !== setIndex)
+          : [...current, setIndex]
+      };
+    });
+  };
+
+  const goNext = () => {
+    if (currentIndex < totalExercises - 1) {
+      setCurrentIndex(i => i + 1);
+    } else {
+      setShowFinishModal(true);
+    }
+  };
+
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(i => i - 1);
+    }
+  };
+
+  const handleFinish = () => {
+    onComplete(completedSets);
+  };
+
+  const isCurrentExerciseComplete = () => {
+    const setsCount = currentExercise.sets || 1;
+    return (completedSets[currentIndex]?.length || 0) >= setsCount;
+  };
+
+  return (
+    <div className="min-h-screen bg-black flex flex-col" style={{ animation: 'slideIn 0.3s ease-out' }}>
+      <div className="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-xl border-b border-white/5">
+        <button 
+          onClick={onBack}
+          className="text-[#FF453A] text-[17px] font-medium active:opacity-50"
+        >
+          Exit
+        </button>
+        <div className="text-center">
+          <p className="text-white/60 text-xs font-medium uppercase tracking-wider">{workout.title}</p>
+          <p className="text-white text-sm font-semibold">
+            {currentIndex + 1} of {totalExercises}
+          </p>
+        </div>
+        <div className="w-12" />
+      </div>
+
+      <div className="h-1 bg-[#2C2C2E]">
+        <div 
+          className="h-full bg-[#30D158] transition-all duration-300 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col px-6 py-8">
+        <div className="mb-8">
+          {currentExercise.isMainLift && (
+            <span className="inline-block bg-[#FF9500]/20 text-[#FF9500] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3">
+              Main Lift
+            </span>
+          )}
+          {currentExercise.isCardio && (
+            <span className="inline-block bg-[#0A84FF]/20 text-[#0A84FF] text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3">
+              Cardio Finisher
+            </span>
+          )}
+          <h1 className="text-3xl font-bold text-white mb-2">{currentExercise.name}</h1>
+          
+          <div className="flex flex-wrap gap-3 mt-4">
+            {currentExercise.sets && !currentExercise.isCardio && (
+              <div className="bg-[#1C1C1E] rounded-xl px-4 py-2">
+                <p className="text-white/40 text-xs uppercase tracking-wider">Sets</p>
+                <p className="text-white font-bold text-lg">{currentExercise.sets}</p>
+              </div>
+            )}
+            {currentExercise.reps && (
+              <div className="bg-[#1C1C1E] rounded-xl px-4 py-2">
+                <p className="text-white/40 text-xs uppercase tracking-wider">Reps</p>
+                <p className="text-white font-bold text-lg">{currentExercise.reps}</p>
+              </div>
+            )}
+            {currentExercise.rest && (
+              <div className="bg-[#1C1C1E] rounded-xl px-4 py-2">
+                <p className="text-white/40 text-xs uppercase tracking-wider">Rest</p>
+                <p className="text-white font-bold text-lg">{currentExercise.rest}</p>
+              </div>
+            )}
+            {currentExercise.duration && (
+              <div className="bg-[#1C1C1E] rounded-xl px-4 py-2">
+                <p className="text-white/40 text-xs uppercase tracking-wider">Duration</p>
+                <p className="text-white font-bold text-lg">{currentExercise.duration}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <p className="text-white/60 text-sm font-medium mb-4">
+            {currentExercise.isCardio ? 'Mark complete when done' : 'Tap sets to mark complete'}
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {Array.from({ length: currentExercise.sets || 1 }).map((_, i) => (
+              <SetCircle
+                key={i}
+                index={i}
+                isComplete={completedSets[currentIndex]?.includes(i)}
+                onClick={() => toggleSet(i)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {!currentExercise.isCardio && <RestTimer />}
+
+        <div className="flex-1" />
+
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={goPrev}
+            disabled={currentIndex === 0}
+            className={`
+              flex-1 py-4 rounded-2xl font-semibold text-lg
+              transition-all duration-150
+              ${currentIndex === 0 
+                ? 'bg-[#1C1C1E] text-white/30' 
+                : 'bg-[#2C2C2E] text-white active:bg-[#3C3C3E] active:scale-[0.98]'
+              }
+            `}
+          >
+            Previous
+          </button>
+          <button
+            onClick={goNext}
+            className={`
+              flex-1 py-4 rounded-2xl font-semibold text-lg
+              transition-all duration-150 active:scale-[0.98]
+              ${isCurrentExerciseComplete()
+                ? 'bg-[#30D158] text-black'
+                : 'bg-[#0A84FF] text-white'
+              }
+            `}
+          >
+            {currentIndex === totalExercises - 1 ? 'Finish' : 'Next'}
+          </button>
+        </div>
+      </div>
+
+      {showFinishModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+          <div className="bg-[#1C1C1E] rounded-3xl p-6 w-full max-w-sm" style={{ animation: 'scaleIn 0.2s ease-out' }}>
+            <div className="text-center mb-6">
+              <div className="w-20 h-20 bg-[#30D158] rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Great Work!</h2>
+              <p className="text-white/60">Ready to log this workout?</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleFinish}
+                className="w-full py-4 bg-[#30D158] text-black font-bold rounded-2xl
+                  active:scale-[0.98] transition-transform"
+              >
+                Save Workout
+              </button>
+              <button
+                onClick={() => setShowFinishModal(false)}
+                className="w-full py-4 bg-[#2C2C2E] text-white font-semibold rounded-2xl
+                  active:bg-[#3C3C3E] transition-colors"
+              >
+                Keep Going
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// MAIN APP
+// ============================================================================
+function App() {
+  const [currentPage, setCurrentPage] = React.useState('dashboard');
+  const [selectedWorkout, setSelectedWorkout] = React.useState(null);
+  const [workoutHistory, setWorkoutHistory] = useLocalStorage('workoutHistory', []);
+  const [lastSessionDate, setLastSessionDate] = useLocalStorage('lastSessionDate', null);
+  const [activeWorkout, setActiveWorkout] = useLocalStorage('activeWorkout', null);
+  const [workoutProgress, setWorkoutProgress] = useLocalStorage('workoutProgress', null);
+
+  React.useEffect(() => {
+    const today = getDateString();
+    if (lastSessionDate && lastSessionDate !== today) {
+      setActiveWorkout(null);
+      setWorkoutProgress(null);
+    }
+    setLastSessionDate(today);
+  }, []);
+
+  const handleSelectWorkout = (workout) => {
+    setSelectedWorkout(workout);
+    setActiveWorkout(workout);
+    setCurrentPage('workout');
+  };
+
+  const handleCompleteWorkout = (completedSets) => {
+    const today = getDateString();
+    
+    const existingIndex = workoutHistory.findIndex(w => w.date === today);
+    
+    const newEntry = {
+      date: today,
+      workoutId: selectedWorkout.id,
+      completedSets
+    };
+
+    if (existingIndex >= 0) {
+      const updated = [...workoutHistory];
+      updated[existingIndex] = newEntry;
+      setWorkoutHistory(updated);
+    } else {
+      setWorkoutHistory([...workoutHistory, newEntry]);
+    }
+
+    setActiveWorkout(null);
+    setWorkoutProgress(null);
+    setSelectedWorkout(null);
+    setCurrentPage('dashboard');
+  };
+
+  const handleExitWorkout = () => {
+    if (selectedWorkout) {
+      setWorkoutProgress({
+        workoutId: selectedWorkout.id,
+        completedSets: {}
+      });
+    }
+    setCurrentPage('dashboard');
+  };
+
+  const today = getDateString();
+  const todayWorkout = activeWorkout;
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
+      
+      {currentPage === 'dashboard' && (
+        <DashboardPage 
+          onSelectWorkout={handleSelectWorkout}
+          onNavigateHistory={() => setCurrentPage('history')}
+          workoutHistory={workoutHistory}
+          todayWorkout={todayWorkout}
+        />
+      )}
+      
+      {currentPage === 'history' && (
+        <HistoryPage 
+          onBack={() => setCurrentPage('dashboard')}
+          workoutHistory={workoutHistory}
+        />
+      )}
+      
+      {currentPage === 'workout' && selectedWorkout && (
+        <WorkoutSessionPage 
+          workout={selectedWorkout}
+          onBack={handleExitWorkout}
+          onComplete={handleCompleteWorkout}
+          initialProgress={workoutProgress}
+        />
+      )}
+    </div>
+  );
+}
+
+// Render
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+  </script>
+</body>
+</html>
